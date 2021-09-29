@@ -6,6 +6,5 @@ latex
 dataGenerator
 *.conf
 input
-p1/p1
 output1
 output2
