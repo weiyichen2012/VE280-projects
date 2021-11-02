@@ -141,7 +141,7 @@ int handleOneSpeciesFile(simulation_t* simulation, ifstream* speciesFile){
 /**
  * @brief Handles the input of species file and corresponding individual species file.
  * 
- * @param simulation Place to store information
+ * @param simulation Place to store information.
  * @return int 1: Success, 0: Error.
  */
 int handleSpeciesFile(simulation_t* simulation){
@@ -175,6 +175,14 @@ int handleSpeciesFile(simulation_t* simulation){
     return 0;
 }
 
+/**
+ * @brief Change the species in creature_t by finding species in world_t, if can't report error.
+ * 
+ * @param simulation Store the global information.
+ * @param species The given species.
+ * @param creature The creature that needs to modify its species.
+ * @return int 0: Success, 1: Error.
+ */
 int findSpecies(simulation_t* simulation, const string species, creature_t* creature){
     for (int i = 0; i < simulation->world.numSpecies; ++i)
         if (simulation->world.species[i].name == species){
@@ -186,6 +194,13 @@ int findSpecies(simulation_t* simulation, const string species, creature_t* crea
     return 1;
 }
 
+/**
+ * @brief Generate point_t with given r and c.
+ * 
+ * @param r Given row.
+ * @param c Given column
+ * @return point_t The point_t that contains r and c.
+ */
 point_t generatePoint(const int r, const int c){
     point_t point;
     point.r = r;
@@ -193,6 +208,13 @@ point_t generatePoint(const int r, const int c){
     return point;
 }
 
+/**
+ * @brief Return a string that has the information of the creature.
+ * 
+ * @param creature The given creature.
+ * @param ifLowerCase True: creature will be lowercased.
+ * @return string The expected output.
+ */
 string printCreature(const creature_t* creature, bool ifLowerCase = false){
     string returnString;
     if (ifLowerCase)
@@ -203,6 +225,16 @@ string printCreature(const creature_t* creature, bool ifLowerCase = false){
     return returnString;
 }
 
+/**
+ * @brief Modifies a creature in world.creature.
+ * 
+ * @param simulation Place to store information.
+ * @param species The species of creature.
+ * @param direction The direction of creature.
+ * @param row The row of creature.
+ * @param column The column of creature.
+ * @return int 0: Success, 1: Error.
+ */
 int handleOneCreature(simulation_t* simulation, const string species, const string direction, const int row, const int column){
     unsigned int& numCreatures = simulation->world.numCreatures;
     creature_t& creature = simulation->world.creatures[numCreatures];
@@ -241,6 +273,12 @@ int handleOneCreature(simulation_t* simulation, const string species, const stri
     return 0;
 }
 
+/**
+ * @brief Read the world file.
+ * 
+ * @param simulation Store the information.
+ * @return int 0: Success, 1: Error.
+ */
 int handleWorldFile(simulation_t* simulation){
     ifstream& worldFile = simulation->worldFile;
     world_t& world = simulation->world;
@@ -296,6 +334,12 @@ int handleWorldFile(simulation_t* simulation){
     return 0;
 }
 
+/**
+ * @brief Process all the inputs through files.
+ * 
+ * @param simulation Place to store information.
+ * @return int 0: Success, 1: Error.
+ */
 int handleFileInputs(simulation_t* simulation){
     if (handleSpeciesFile(simulation))
         return 1;
