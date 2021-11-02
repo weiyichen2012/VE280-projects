@@ -1,9 +1,9 @@
 rm 1 -f
 rm 2 -f
 rm dataGenerator
-g++ -o 1 1.cpp
-g++ -o 2 2.cpp
-g++ -o dataGenerator dataGenerator.cpp
+g++ -Wall -o 1 1.cpp 
+g++ -Wall -o 2 2.cpp
+g++ -o dataGenerator dataGenerator.cpp -std=c++11
 declare -i t=0 t1=0 t2=0 t1Sum=0 t2Sum=0 t1Avg=0 t2Avg=0 start=0 finish=0
 while [ $t -lt $1 ]
 do

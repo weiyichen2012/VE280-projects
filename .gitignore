@@ -5,6 +5,8 @@ latex
 2*
 dataGenerator
 *.conf
+*.zip
+*.o
 input
 output1
 output2

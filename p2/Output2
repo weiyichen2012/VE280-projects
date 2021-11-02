@@ -1,0 +1,36 @@
+A: ( 1 2 3 4 5 )
+B: ( 5 4 3 2 1 )
+
+size(A): 5
+size(E): 0
+
+sum(A): 15
+sum(E): 0
+
+product(A): 120
+product(E): 1
+
+reverse(A): ( 5 4 3 2 1 )
+reverse(E): ( )
+
+append(A, B): ( 1 2 3 4 5 5 4 3 2 1 )
+append(A, E): ( 1 2 3 4 5 )
+append(E, A): ( 1 2 3 4 5 )
+append(E, E): ( )
+
+filter_odd(A): ( 1 3 5 )
+filter_odd(B): ( 5 3 1 )
+filter_odd(E): ( )
+
+filter_even(A): ( 2 4 )
+filter_even(E): ( )
+
+insert_list(A, B, 2): ( 1 2 5 4 3 2 1 3 4 5 )
+insert_list(A, E, 2): ( 1 2 3 4 5 )
+insert_list(E, A, 0): ( 1 2 3 4 5 )
+insert_list(E, E, 0): ( )
+
+chop(A, 2): ( 1 2 3 )
+chop(A, 5): ( )
+chop(E, 0): ( )
+

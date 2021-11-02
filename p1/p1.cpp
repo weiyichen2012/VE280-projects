@@ -3,9 +3,7 @@
  * @file p1.cpp
  * @author Yichen Wei (ethepherein@sjtu.edu.cn)
  * @brief VE280 project1
- * @version 0.1
- * @date 2021-09-28
- * @copyright Copyright (c) 2021
+ * @date 2021-10-05
  * 
  */
 #include <iostream>
@@ -25,7 +23,7 @@ void input(int &integer, int &number){
     }
 }
 /**
- * @brief Given the information of whether the test if pass, will prrint (Pass / Fail).
+ * @brief Given the information of whether the test if pass, will print (Pass / Fail).
  * @param ifPass The ifPass indicates whether the test is past.
  */
 void output(bool ifPass){
@@ -61,28 +59,99 @@ bool binarySearchTriangle(int left, int right, int integer){
  * @return false: The integer isn't a triangle number.
  */
 bool ifTriangle(int integer){
-    return binarySearchTriangle(1, 2 * ceil(sqrt(integer)), integer);
+    int maxTriangleNum = 2 * ceil(sqrt(integer));
+    return binarySearchTriangle(1, maxTriangleNum, integer);
 }
 
 /**
  * @brief Determine whether a integer is a power number.
- * First find the minimum prime factor of this integer, then see if this integer is only multiplied by this minimum prime factor.
+ * First find a factor of this integer, then check if this integer is only multiplied by this factor.
  * @param integer 
- * @return true 
- * @return false 
+ * @return true The integer is a power number.
+ * @return false The integer isn't a power number.
  */
-bool ifPowerNumber(int integer){
-    for (int i = 2; i <= ceil(sqrt(integer)); ++i)
+bool ifPower(int integer){
+    for (int i = 2; i <= ceil(sqrt(integer)); ++i){
+        if (integer / i == 1)
+            continue;
         if (integer % i == 0){
-            while (integer != 1){
-                if (integer % i != 1)
-                    return false;
-                integer = integer / i;
+            int temp = integer;
+            while (temp != 1){
+                if (temp % i != 0)
+                    break;
+                temp = temp / i;
             }
-            return true;
+            if (temp == 1)
+                return true;
         }
+    }
     return false;
 }
+
+/**
+ * @brief sum[i] stores the square sum from 1 to i.
+ * 
+ */
+unsigned long long sum[4000];
+
+/**
+ * @brief Using binary search method, given the left boundary: m, determine whether there exists a n that fits sum of squares.
+ * @param m The left boundary of sum of squares.
+ * @param left The current left boundary of n in binary search.
+ * @param right The current right boundary of n in binary search.
+ * @param integer The target integer.
+ * @return true The integer is a sum of consecutive sqaures number.
+ * @return false The integer isn't a sum of consecutive squares number with given m.
+ */
+bool binarySearchSquares(int m, int left, int right, int integer){
+    if (left > right)
+        return false;
+    int mid = (left + right) / 2;
+    if (sum[mid] - sum[m] == (unsigned long long)integer)
+        return true;
+    else if (sum[mid] - sum[m] > (unsigned long long)integer)
+        return binarySearchSquares(m, left, mid - 1, integer);
+    else
+        return binarySearchSquares(m, mid + 1, right, integer);
+}
+
+/**
+ * @brief Call binarySearchSqaures() with suitable initial value to check all the m, if it's a sum of consecutive square number.
+ * @param integer The given interger.
+ * @return true The integer is a sum of consecutive sqaures number.
+ * @return false The integer isn't a sum of consecutive sqaures number.
+ */
+bool ifSumSquares(int integer){
+    for (int i = 1; i < 4000; ++i)
+        sum[i] = sum[i - 1] + i * i;
+    int upperBound = ceil(sqrt(integer));
+    for (int i = 1; i <= upperBound; ++i)
+        if (binarySearchSquares(i - 1, i, upperBound, integer))
+            return true;
+    return false;
+}
+
+/**
+ * @brief Determine whether a number is a abduntant number.
+ * First find all the small divisors (smaller than sqrt(integer)), then add the small divisors and their corresponding big divisors. Compare the sum to the integer.
+ * @param integer 
+ * @return true The integer is a abdundant number.
+ * @return false The integer isn't a abdundant number.
+ */
+bool ifAbdundant(int integer){
+    int sum = 0;
+    for (int i = 1; i <= floor(sqrt(integer)); ++i)
+        if (integer % i == 0){
+            sum += i;
+            if (i != 1 && integer / i != i)
+                sum += integer / i;
+        }
+    if (sum > integer)
+        return true;
+    else
+        return false;
+}
+
 /**
  * @brief The main function.
  * @return int 
@@ -96,7 +165,15 @@ int main(){
             break;
 
         case 2:
-            output(ifPowerNumber(integer));
+            output(ifPower(integer));
+            break;
+        
+        case 3:
+            output(ifSumSquares(integer));
+            break;
+
+        case 4:
+            output(ifAbdundant(integer));
             break;
     }
     return 0;

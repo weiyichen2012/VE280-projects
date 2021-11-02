@@ -1,0 +1,1 @@
+scp -P 1024 -r p1 root@59.78.30.87:/home/ethepherein
