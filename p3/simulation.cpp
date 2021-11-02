@@ -50,14 +50,31 @@ int handleArguments(simulation_t* simulation, const int argc, char* const argv[]
     return 0;
 }
 
-instruction_t generateInstruction(opcode_t op, int address = 0){
+/**
+ * @brief Given op and address, generate corresponding instruction_t.
+ * 
+ * @param op Given op.
+ * @param address Given address.
+ * @return instruction_t The instruction_t that includes op and address.
+ */
+instruction_t generateInstruction(const opcode_t op, const int address = 0){
     instruction_t instruction;
     instruction.op = op;
     instruction.address = address;
+    return instruction;
 }
 
-int handleOneSpeciesInstruction(simulation_t* simulation, string instruction, string leftLine){
-    // cout << "In handleOneSpeciesInstruction " << instruction << "|" << leftLine << endl;
+/**
+ * @brief Input a full instuction that's split into two parts. First only contains the instruction, second leftLine contains the full instruction get rid of the instruction.
+ * For example a full instruction: "ifenemy 4    If there is an enemy, go to step 4.". Then instruction = "ifenemy", instruction = "4    If there is an enemy, go to step 4."
+ * Handle this instruction and store it in corresponding data structure.
+ * 
+ * @param simulation Place to store information.
+ * @param instruction See in brief part.
+ * @param leftLine See in brief part.
+ * @return int 0: Success, 1: Error.
+ */
+int handleOneSpeciesInstruction(simulation_t* simulation, const string instruction, const string leftLine){
     unsigned int& numSpecies = simulation->world.numSpecies;
     species_t& theSpecies = simulation->world.species[numSpecies];
 
@@ -75,21 +92,38 @@ int handleOneSpeciesInstruction(simulation_t* simulation, string instruction, st
     else if (instruction == "infect")
         theSpecies.program[theSpecies.programSize++] = generateInstruction(INFECT);
     else{
-        cout << "Error: Instruction " << instruction << " is not recognized!" << endl;
-        return 1;
+        int address = atoi(leftLine.c_str());
+        if (instruction == "ifempty")
+            theSpecies.program[theSpecies.programSize++] = generateInstruction(IFEMPTY, address);
+        else if (instruction == "ifwall")
+            theSpecies.program[theSpecies.programSize++] = generateInstruction(IFWALL, address);
+        else if (instruction == "ifsame")
+            theSpecies.program[theSpecies.programSize++] = generateInstruction(IFSAME, address);
+        else if (instruction == "ifenemy")
+            theSpecies.program[theSpecies.programSize++] = generateInstruction(IFENEMY, address);
+        else if (instruction == "go")
+            theSpecies.program[theSpecies.programSize++] = generateInstruction(GO, address);
+        else{
+            cout << "Error: Instruction " << instruction << " is not recognized!" << endl;
+            return 1;
+        }
     }
     return 0;
 }
 
+/**
+ * @brief Handles the input of one species.
+ * 
+ * @param simulation Place to store information.
+ * @param speciesFile The file needs to be read.
+ * @return int 1: Success, 0: Error.
+ */
 int handleOneSpeciesFile(simulation_t* simulation, ifstream* speciesFile){
     string line, splitMsg;
     int pos;
     while(getline((*speciesFile), line)){
-        if (line == ""){
-            // cout << "Empty" << endl;
+        if (line == "")
             return 0;
-        }
-        // cout << line << endl;
 
         pos = line.find(" ");
         if (pos == -1){
@@ -104,6 +138,12 @@ int handleOneSpeciesFile(simulation_t* simulation, ifstream* speciesFile){
     return 0;    
 }
 
+/**
+ * @brief Handles the input of species file and corresponding individual species file.
+ * 
+ * @param simulation Place to store information
+ * @return int 1: Success, 0: Error.
+ */
 int handleSpeciesFile(simulation_t* simulation){
     ifstream& speciesFile = simulation->speciesFile;
     string directory;
@@ -135,8 +175,132 @@ int handleSpeciesFile(simulation_t* simulation){
     return 0;
 }
 
+int findSpecies(simulation_t* simulation, const string species, creature_t* creature){
+    for (int i = 0; i < simulation->world.numSpecies; ++i)
+        if (simulation->world.species[i].name == species){
+            creature->species = simulation->world.species + i;
+            return 0;
+        }
+    
+    cout << "Error: Species " << species << " not found!" << endl;
+    return 1;
+}
+
+point_t generatePoint(const int r, const int c){
+    point_t point;
+    point.r = r;
+    point.c = c;
+    return point;
+}
+
+string printCreature(const creature_t* creature, bool ifLowerCase = false){
+    string returnString;
+    if (ifLowerCase)
+        returnString += "creature (";
+    else
+        returnString += "Creature (";
+    returnString += creature->species->name + " " + directName[creature->direction] + " " + to_string(creature->location.r) + " " + to_string(creature->location.c) + ")";
+    return returnString;
+}
+
+int handleOneCreature(simulation_t* simulation, const string species, const string direction, const int row, const int column){
+    unsigned int& numCreatures = simulation->world.numCreatures;
+    creature_t& creature = simulation->world.creatures[numCreatures];
+    creature.programID = 1;
+
+    if (findSpecies(simulation, species, &creature))
+        return 1;
+    
+    if (direction == "east")
+        creature.direction = EAST;
+    else if (direction == "south")
+        creature.direction = SOUTH;
+    else if (direction == "west")
+        creature.direction = WEST;
+    else if (direction == "north")
+        creature.direction = NORTH;
+    else{
+        cout << "Error: Direction " << direction << " is not recognized!" << endl;
+        return 1;
+    }
+
+    creature.location = generatePoint(row, column);
+
+    if (row < 0 || row >= simulation->world.grid.height || column < 0 || column >= simulation->world.grid.width){
+        cout << "Error: " << printCreature(&creature) << " is out of bound!" << endl << "The grid size is " << simulation->world.grid.height << "-by-" << simulation->world.grid.width << "." << endl;
+        return 1;
+    }
+
+    if (simulation->world.grid.squares[row][column] != nullptr){
+        cout << "Error: " << printCreature(&creature) <<" overlaps with " << printCreature(simulation->world.grid.squares[row][column], true) << "!" << endl;
+    }
+    else{
+        simulation->world.grid.squares[row][column] = &creature;
+    }
+
+    return 0;
+}
+
+int handleWorldFile(simulation_t* simulation){
+    ifstream& worldFile = simulation->worldFile;
+    world_t& world = simulation->world;
+
+    worldFile >> world.grid.height;
+    if (world.grid.height < 1 || world.grid.height > MAXHEIGHT){
+        cout << "Error: The grid height is illegal!" << endl;
+        return 1;
+    }
+
+    worldFile >> world.grid.width;
+    if (world.grid.width < 1 || world.grid.width > MAXWIDTH){
+        cout << "Error: The grid width is illegal!" << endl;
+        return 1;
+    }
+
+    simulation->world.numCreatures = 0;
+    for (int i = 0; i < world.grid.height; ++i)
+        for (int j = 0; j < world.grid.width; ++j)
+            simulation->world.grid.squares[i][j] = nullptr;
+
+    string line;
+    getline(worldFile, line);
+    while (getline(worldFile, line)){
+        if (simulation->world.numCreatures == MAXCREATURES){
+            cout << "Error: Too many creatures!" << endl << "Maximal number of creatures is " << MAXCREATURES << "." << endl;
+            return 1;
+        }
+
+        string species, direction;
+        int row, column, pos;
+
+        pos = line.find(" ");
+        species = line.substr(0, pos);
+        line = line.substr(pos + 1, line.size());
+
+        pos = line.find(" ");
+        direction = line.substr(0, pos);
+        line = line.substr(pos + 1, line.size());
+
+        pos = line.find(" ");
+        row = atoi(line.substr(0, pos).c_str());
+        line = line.substr(pos + 1, line.size());
+
+        column = atoi(line.c_str());
+
+        if (handleOneCreature(simulation, species, direction, row, column))
+            return 1;
+        
+        simulation->world.numCreatures++;
+    }
+
+    return 0;
+}
+
 int handleFileInputs(simulation_t* simulation){
     if (handleSpeciesFile(simulation))
+        return 1;
+
+    if (handleWorldFile(simulation))
         return 1;
 
     return 0;
