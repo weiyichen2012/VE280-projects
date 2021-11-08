@@ -424,5 +424,7 @@ void runSimulation(simulation_t* simulation){
             if (simulation->ifVervose)
                 printState(&simulation->world.grid);
         }
+        if (!simulation->ifVervose)
+            printState(&simulation->world.grid);
     }
 }
