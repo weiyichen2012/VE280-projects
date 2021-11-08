@@ -20,7 +20,7 @@ struct simulation_t{
     int rounds;
     bool ifVervose;
     world_t world;
-
+    int turn;
 };
 
 // For functions' comments, see in simulation.cpp file.
@@ -28,5 +28,7 @@ struct simulation_t{
 int handleArguments(simulation_t* simulation, const int argc, char* const argv[]);
 
 int handleFileInputs(simulation_t* simulation);
+
+void runSimulation(simulation_t* simulation);
 
 #endif

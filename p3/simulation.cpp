@@ -238,7 +238,7 @@ string printCreature(const creature_t* creature, bool ifLowerCase = false){
 int handleOneCreature(simulation_t* simulation, const string species, const string direction, const int row, const int column){
     unsigned int& numCreatures = simulation->world.numCreatures;
     creature_t& creature = simulation->world.creatures[numCreatures];
-    creature.programID = 1;
+    creature.programID = 0;
 
     if (findSpecies(simulation, species, &creature))
         return 1;
@@ -348,4 +348,81 @@ int handleFileInputs(simulation_t* simulation){
         return 1;
 
     return 0;
+}
+
+void printState(grid_t* grid){
+    for (int i = 0; i < grid->height; ++i)
+        for (int j = 0; j < grid->width; ++j){
+            if (grid->squares[i][j] == nullptr)
+                cout << "____";
+            else
+                cout << grid->squares[i][j]->species->name.substr(0, 2) << "_" << directShortName[grid->squares[i][j]->direction];
+            
+            if (j == grid->width - 1)
+                cout << endl;
+            else
+                cout << " ";
+        }
+}
+
+void printMove(simulation_t* simulation, int instructionNum, string instruction){
+    if (simulation->ifVervose)
+        cout << "Instruction " << instructionNum + 1 << ": " << instruction << endl;
+    else
+        if (instruction == "hop" || instruction == "left" || instruction == "right" || instruction == "infect")
+            cout << instruction << endl;
+}
+
+void moveCreatureProgram(creature_t* creature){
+    creature->programID = (creature->programID + 1) % (creature->species->programSize);
+}
+
+void creatureHop(simulation_t* simulation, creature_t* creature){
+    printMove(simulation, creature->programID, "hop");
+    int dx[4] = {0, 1,  0, -1}, dy[4] = {1, 0, -1,  0};
+    int oldX = creature->location.r, oldY = creature->location.c;
+    int x = oldX + dx[creature->direction], y = oldY + dy[creature->direction];
+    world_t& world = simulation->world;
+    if (x < 0 || y < 0 || x > world.grid.height || y > world.grid.width || world.grid.squares[x][y] != nullptr)
+        return;
+    world.grid.squares[x][y] = world.grid.squares[oldX][oldY];
+    world.grid.squares[oldX][oldY] = nullptr;
+    creature->location.r = x;
+    creature->location.c = y;
+    
+}
+
+void creatureAction(simulation_t* simulation, creature_t* creature){
+    bool ifUnfinished = true;
+    instruction_t* program = creature->species->program;
+    while (ifUnfinished){
+        switch (program[creature->programID].op){
+            case HOP:
+                ifUnfinished = false;
+                creatureHop(simulation, creature);
+                break;
+            
+            default:
+                ifUnfinished = false;
+                creature->programID++;
+                break;
+        }
+    }
+}
+
+void runSimulation(simulation_t* simulation){
+    simulation->turn = 0;
+    cout << "Initial state" << endl;
+    printState(&simulation->world.grid);
+    for (int i = 0; i < simulation->rounds; ++i){
+        cout << "Round " << (i + 1) << endl;
+        for (int j = 0; j < simulation->world.numCreatures; ++j){
+            cout << printCreature(simulation->world.creatures + j) << "takes action: ";
+            if (simulation->ifVervose)
+                cout << endl;
+            creatureAction(simulation, simulation->world.creatures + j);
+            if (simulation->ifVervose)
+                printState(&simulation->world.grid);
+        }
+    }
 }
