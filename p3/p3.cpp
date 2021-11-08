@@ -12,7 +12,5 @@ int main(int argc, char* argv[]){
         return 1;
 
     runSimulation(&simulation);
-    cout << simulation.world.species[0].name << endl;
-    cout << "Finished" << endl;
     return 0;
 }

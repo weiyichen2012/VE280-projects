@@ -184,7 +184,7 @@ int handleSpeciesFile(simulation_t* simulation){
  * @return int 0: Success, 1: Error.
  */
 int findSpecies(simulation_t* simulation, const string species, creature_t* creature){
-    for (int i = 0; i < simulation->world.numSpecies; ++i)
+    for (int i = 0; i < (int)simulation->world.numSpecies; ++i)
         if (simulation->world.species[i].name == species){
             creature->species = simulation->world.species + i;
             return 0;
@@ -258,7 +258,7 @@ int handleOneCreature(simulation_t* simulation, const string species, const stri
 
     creature.location = generatePoint(row, column);
 
-    if (row < 0 || row >= simulation->world.grid.height || column < 0 || column >= simulation->world.grid.width){
+    if (row < 0 || row >= (int)simulation->world.grid.height || column < 0 || column >= (int)simulation->world.grid.width){
         cout << "Error: " << printCreature(&creature) << " is out of bound!" << endl << "The grid size is " << simulation->world.grid.height << "-by-" << simulation->world.grid.width << "." << endl;
         return 1;
     }
@@ -296,8 +296,8 @@ int handleWorldFile(simulation_t* simulation){
     }
 
     simulation->world.numCreatures = 0;
-    for (int i = 0; i < world.grid.height; ++i)
-        for (int j = 0; j < world.grid.width; ++j)
+    for (int i = 0; i < (int)world.grid.height; ++i)
+        for (int j = 0; j < (int)world.grid.width; ++j)
             simulation->world.grid.squares[i][j] = nullptr;
 
     string line;
@@ -351,26 +351,34 @@ int handleFileInputs(simulation_t* simulation){
 }
 
 void printState(grid_t* grid){
-    for (int i = 0; i < grid->height; ++i)
-        for (int j = 0; j < grid->width; ++j){
+    for (int i = 0; i < (int)grid->height; ++i)
+        for (int j = 0; j < (int)grid->width; ++j){
             if (grid->squares[i][j] == nullptr)
                 cout << "____";
             else
                 cout << grid->squares[i][j]->species->name.substr(0, 2) << "_" << directShortName[grid->squares[i][j]->direction];
             
-            if (j == grid->width - 1)
+            cout << " ";
+            if (j == (int)grid->width - 1)
                 cout << endl;
-            else
-                cout << " ";
         }
 }
 
-void printMove(simulation_t* simulation, int instructionNum, string instruction){
+void printMove(simulation_t* simulation, creature_t* creature, string instruction){
     if (simulation->ifVervose)
-        cout << "Instruction " << instructionNum + 1 << ": " << instruction << endl;
+        cout << "Instruction " << creature->programID + 1 << ": " << instruction << endl;
     else
         if (instruction == "hop" || instruction == "left" || instruction == "right" || instruction == "infect")
             cout << instruction << endl;
+}
+
+point_t newCreaturePos(creature_t* creature){
+    int dx[4] = {0, 1,  0, -1}, dy[4] = {1, 0, -1,  0};
+    int oldX = creature->location.r, oldY = creature->location.c;
+    point_t newPos;
+    newPos.r = oldX + dx[creature->direction];
+    newPos.c = oldY + dy[creature->direction];
+    return newPos;
 }
 
 void moveCreatureProgram(creature_t* creature){
@@ -378,18 +386,100 @@ void moveCreatureProgram(creature_t* creature){
 }
 
 void creatureHop(simulation_t* simulation, creature_t* creature){
-    printMove(simulation, creature->programID, "hop");
-    int dx[4] = {0, 1,  0, -1}, dy[4] = {1, 0, -1,  0};
+    printMove(simulation, creature, "hop");
+    moveCreatureProgram(creature);
     int oldX = creature->location.r, oldY = creature->location.c;
-    int x = oldX + dx[creature->direction], y = oldY + dy[creature->direction];
+    point_t newPos = newCreaturePos(creature);
+    int x = newPos.r, y = newPos.c;
     world_t& world = simulation->world;
-    if (x < 0 || y < 0 || x > world.grid.height || y > world.grid.width || world.grid.squares[x][y] != nullptr)
+    if (x < 0 || y < 0 || x >= (int)world.grid.height || y >= (int)world.grid.width || world.grid.squares[x][y] != nullptr)
         return;
     world.grid.squares[x][y] = world.grid.squares[oldX][oldY];
     world.grid.squares[oldX][oldY] = nullptr;
     creature->location.r = x;
     creature->location.c = y;
     
+}
+
+void creatureLeft(simulation_t* simulation, creature_t* creature){
+    printMove(simulation, creature, "left");
+    moveCreatureProgram(creature);
+    if (creature->direction == EAST)
+        creature->direction = NORTH;
+    else
+        creature->direction = (direction_t)(creature->direction - 1);
+}
+
+void creatureRight(simulation_t* simulation, creature_t* creature){
+    printMove(simulation, creature, "right");
+    moveCreatureProgram(creature);
+    creature->direction = (direction_t)((creature->direction + 1) % 4);
+}
+
+void creatureInfect(simulation_t* simulation, creature_t* creature){
+    printMove(simulation, creature, "infect");
+    moveCreatureProgram(creature);
+    point_t newPos = newCreaturePos(creature);
+    int x = newPos.r, y = newPos.c;
+    world_t& world = simulation->world;
+    if (x < 0 || y < 0 || x >= (int)world.grid.height || y >= (int)world.grid.width || world.grid.squares[x][y] == nullptr)
+        return;
+    world.grid.squares[x][y]->species = creature->species;
+    world.grid.squares[x][y]->programID = 0;
+}
+
+void creatureIfEmpty(simulation_t* simulation, creature_t* creature){
+    printMove(simulation, creature, "ifempty " + to_string(creature->species->program[creature->programID].address));
+    int address = creature->species->program[creature->programID].address - 1;
+    moveCreatureProgram(creature);
+    point_t newPos = newCreaturePos(creature);
+    int x = newPos.r, y = newPos.c;
+    world_t& world = simulation->world;
+    if (x < 0 || y < 0 || x >= (int)world.grid.height || y >= (int)world.grid.width || world.grid.squares[x][y] != nullptr)
+        return;
+    creature->programID = address;
+}
+
+void creatureIfWall(simulation_t* simulation, creature_t* creature){
+    printMove(simulation, creature, "ifwall " + to_string(creature->species->program[creature->programID].address));
+    int address = creature->species->program[creature->programID].address - 1;
+    moveCreatureProgram(creature);
+    point_t newPos = newCreaturePos(creature);
+    int x = newPos.r, y = newPos.c;
+    world_t& world = simulation->world;
+    if (x < 0 || y < 0 || x >= (int)world.grid.height || y >= (int)world.grid.width)
+        creature->programID = address;
+}
+
+void creatureIfSame(simulation_t* simulation, creature_t* creature){
+    printMove(simulation, creature, "ifsame " + to_string(creature->species->program[creature->programID].address));
+    int address = creature->species->program[creature->programID].address - 1;
+    moveCreatureProgram(creature);
+    point_t newPos = newCreaturePos(creature);
+    int x = newPos.r, y = newPos.c;
+    world_t& world = simulation->world;
+    if (x < 0 || y < 0 || x >= (int)world.grid.height || y >= (int)world.grid.width || world.grid.squares[x][y] == nullptr)
+        return;
+    if (world.grid.squares[x][y]->species == creature->species)
+        creature->programID = address;
+}
+
+void creatureIfEnemy(simulation_t* simulation, creature_t* creature){
+    printMove(simulation, creature, "ifenemy " + to_string(creature->species->program[creature->programID].address));
+    int address = creature->species->program[creature->programID].address - 1;
+    moveCreatureProgram(creature);
+    point_t newPos = newCreaturePos(creature);
+    int x = newPos.r, y = newPos.c;
+    world_t& world = simulation->world;
+    if (x < 0 || y < 0 || x >= (int)world.grid.height || y >= (int)world.grid.width || world.grid.squares[x][y] == nullptr)
+        return;
+    if (world.grid.squares[x][y]->species != creature->species)
+        creature->programID = address;
+}
+
+void creatureGo(simulation_t* simulation, creature_t* creature){
+    printMove(simulation, creature, "go " + to_string(creature->species->program[creature->programID].address));
+    creature->programID = creature->species->program[creature->programID].address - 1;
 }
 
 void creatureAction(simulation_t* simulation, creature_t* creature){
@@ -402,8 +492,44 @@ void creatureAction(simulation_t* simulation, creature_t* creature){
                 creatureHop(simulation, creature);
                 break;
             
+            case LEFT:
+                ifUnfinished = false;
+                creatureLeft(simulation, creature);
+                break;
+
+            case RIGHT:
+                ifUnfinished = false;
+                creatureRight(simulation, creature);
+                break;
+
+            case INFECT:
+                ifUnfinished = false;
+                creatureInfect(simulation, creature);
+                break;
+
+            case IFEMPTY:
+                creatureIfEmpty(simulation, creature);
+                break;
+
+            case IFWALL:
+                creatureIfWall(simulation, creature);
+                break;
+
+            case IFSAME:
+                creatureIfSame(simulation, creature);
+                break;
+            
+            case IFENEMY:
+                creatureIfEnemy(simulation, creature);
+                break;
+
+            case GO:
+                creatureGo(simulation, creature);
+                break;
+
             default:
                 ifUnfinished = false;
+                cout << "Error in creatureAction, default" << endl;
                 creature->programID++;
                 break;
         }
@@ -416,10 +542,12 @@ void runSimulation(simulation_t* simulation){
     printState(&simulation->world.grid);
     for (int i = 0; i < simulation->rounds; ++i){
         cout << "Round " << (i + 1) << endl;
-        for (int j = 0; j < simulation->world.numCreatures; ++j){
-            cout << printCreature(simulation->world.creatures + j) << "takes action: ";
+        for (int j = 0; j < (int)simulation->world.numCreatures; ++j){
+            cout << printCreature(simulation->world.creatures + j) << " takes action:";
             if (simulation->ifVervose)
                 cout << endl;
+            else
+                cout << " ";
             creatureAction(simulation, simulation->world.creatures + j);
             if (simulation->ifVervose)
                 printState(&simulation->world.grid);

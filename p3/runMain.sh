@@ -1,2 +1,2 @@
 make all
-./p3 species world1 5 c
+./p3 species world2 20 v
