@@ -265,6 +265,7 @@ int handleOneCreature(simulation_t* simulation, const string species, const stri
 
     if (simulation->world.grid.squares[row][column] != nullptr){
         cout << "Error: " << printCreature(&creature) <<" overlaps with " << printCreature(simulation->world.grid.squares[row][column], true) << "!" << endl;
+        return 1;
     }
     else{
         simulation->world.grid.squares[row][column] = &creature;
@@ -350,6 +351,11 @@ int handleFileInputs(simulation_t* simulation){
     return 0;
 }
 
+/**
+ * @brief Print current state, used for output.
+ * 
+ * @param grid The grid contains all the information needed.
+ */
 void printState(grid_t* grid){
     for (int i = 0; i < (int)grid->height; ++i)
         for (int j = 0; j < (int)grid->width; ++j){
@@ -364,6 +370,13 @@ void printState(grid_t* grid){
         }
 }
 
+/**
+ * @brief Print move due to output request.
+ * 
+ * @param simulation Stores information needed.
+ * @param creature The specific creature to be printed.
+ * @param instruction What instruction needs to be printed.
+ */
 void printMove(simulation_t* simulation, creature_t* creature, string instruction){
     if (simulation->ifVervose)
         cout << "Instruction " << creature->programID + 1 << ": " << instruction << endl;
@@ -372,6 +385,12 @@ void printMove(simulation_t* simulation, creature_t* creature, string instructio
             cout << instruction << endl;
 }
 
+/**
+ * @brief Output the position the creature is facing.
+ * 
+ * @param creature The specific creature
+ * @return point_t The position
+ */
 point_t newCreaturePos(creature_t* creature){
     int dx[4] = {0, 1,  0, -1}, dy[4] = {1, 0, -1,  0};
     int oldX = creature->location.r, oldY = creature->location.c;
@@ -381,10 +400,21 @@ point_t newCreaturePos(creature_t* creature){
     return newPos;
 }
 
+/**
+ * @brief Make the creature's program go on 1 step.
+ * 
+ * @param creature The specific creature.
+ */
 void moveCreatureProgram(creature_t* creature){
     creature->programID = (creature->programID + 1) % (creature->species->programSize);
 }
 
+/**
+ * @brief Handle Hop action of creature.
+ * 
+ * @param simulation 
+ * @param creature 
+ */
 void creatureHop(simulation_t* simulation, creature_t* creature){
     printMove(simulation, creature, "hop");
     moveCreatureProgram(creature);
@@ -401,6 +431,12 @@ void creatureHop(simulation_t* simulation, creature_t* creature){
     
 }
 
+/**
+ * @brief Handle Left action of creature.
+ * 
+ * @param simulation 
+ * @param creature 
+ */
 void creatureLeft(simulation_t* simulation, creature_t* creature){
     printMove(simulation, creature, "left");
     moveCreatureProgram(creature);
@@ -410,12 +446,24 @@ void creatureLeft(simulation_t* simulation, creature_t* creature){
         creature->direction = (direction_t)(creature->direction - 1);
 }
 
+/**
+ * @brief Handle Right action of creature.
+ * 
+ * @param simulation 
+ * @param creature 
+ */
 void creatureRight(simulation_t* simulation, creature_t* creature){
     printMove(simulation, creature, "right");
     moveCreatureProgram(creature);
     creature->direction = (direction_t)((creature->direction + 1) % 4);
 }
 
+/**
+ * @brief Handle Infect action of creature.
+ * 
+ * @param simulation 
+ * @param creature 
+ */
 void creatureInfect(simulation_t* simulation, creature_t* creature){
     printMove(simulation, creature, "infect");
     moveCreatureProgram(creature);
@@ -428,6 +476,12 @@ void creatureInfect(simulation_t* simulation, creature_t* creature){
     world.grid.squares[x][y]->programID = 0;
 }
 
+/**
+ * @brief Handle IfEmpty action of creature.
+ * 
+ * @param simulation 
+ * @param creature 
+ */
 void creatureIfEmpty(simulation_t* simulation, creature_t* creature){
     printMove(simulation, creature, "ifempty " + to_string(creature->species->program[creature->programID].address));
     int address = creature->species->program[creature->programID].address - 1;
@@ -440,6 +494,12 @@ void creatureIfEmpty(simulation_t* simulation, creature_t* creature){
     creature->programID = address;
 }
 
+/**
+ * @brief Handle IfWall action of creature.
+ * 
+ * @param simulation 
+ * @param creature 
+ */
 void creatureIfWall(simulation_t* simulation, creature_t* creature){
     printMove(simulation, creature, "ifwall " + to_string(creature->species->program[creature->programID].address));
     int address = creature->species->program[creature->programID].address - 1;
@@ -451,6 +511,12 @@ void creatureIfWall(simulation_t* simulation, creature_t* creature){
         creature->programID = address;
 }
 
+/**
+ * @brief Handle IfSame action of creature.
+ * 
+ * @param simulation 
+ * @param creature 
+ */
 void creatureIfSame(simulation_t* simulation, creature_t* creature){
     printMove(simulation, creature, "ifsame " + to_string(creature->species->program[creature->programID].address));
     int address = creature->species->program[creature->programID].address - 1;
@@ -464,6 +530,12 @@ void creatureIfSame(simulation_t* simulation, creature_t* creature){
         creature->programID = address;
 }
 
+/**
+ * @brief Handle IfEnemy action of creature.
+ * 
+ * @param simulation 
+ * @param creature 
+ */
 void creatureIfEnemy(simulation_t* simulation, creature_t* creature){
     printMove(simulation, creature, "ifenemy " + to_string(creature->species->program[creature->programID].address));
     int address = creature->species->program[creature->programID].address - 1;
@@ -477,11 +549,23 @@ void creatureIfEnemy(simulation_t* simulation, creature_t* creature){
         creature->programID = address;
 }
 
+/**
+ * @brief Handle Go action of creature.
+ * 
+ * @param simulation 
+ * @param creature 
+ */
 void creatureGo(simulation_t* simulation, creature_t* creature){
     printMove(simulation, creature, "go " + to_string(creature->species->program[creature->programID].address));
     creature->programID = creature->species->program[creature->programID].address - 1;
 }
 
+/**
+ * @brief Handle the top action of the creature
+ * 
+ * @param simulation 
+ * @param creature 
+ */
 void creatureAction(simulation_t* simulation, creature_t* creature){
     bool ifUnfinished = true;
     instruction_t* program = creature->species->program;
@@ -536,6 +620,11 @@ void creatureAction(simulation_t* simulation, creature_t* creature){
     }
 }
 
+/**
+ * @brief Run the simulation by specific indexes.
+ * 
+ * @param simulation 
+ */
 void runSimulation(simulation_t* simulation){
     simulation->turn = 0;
     cout << "Initial state" << endl;

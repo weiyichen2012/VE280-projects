@@ -6,10 +6,10 @@ int main(int argc, char* argv[]){
     simulation.world.numCreatures = simulation.world.numSpecies = 0;
 
     if (handleArguments(&simulation, argc, argv))
-        return 1;
+        return 0;
     
     if (handleFileInputs(&simulation))
-        return 1;
+        return 0;
 
     runSimulation(&simulation);
     return 0;

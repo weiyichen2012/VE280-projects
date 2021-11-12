@@ -20,8 +20,9 @@ struct simulation_t{
     int rounds;
     bool ifVervose;
     world_t world;
-    int turn;
+    int turn = 1;
 };
+
 
 // For functions' comments, see in simulation.cpp file.
 

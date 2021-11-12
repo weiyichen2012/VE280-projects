@@ -1,7 +1,22 @@
-5
-5
+20
+19
 flytrap east 1 1
-landmine south 4 4
-food south 3 2
-lrover north 2 0
-hop west 0 3
+landmine south 2 2
+food south 3 3
+lrover north 4 4
+hop west 5 5
+flytrap east 1 2
+landmine south 2 3
+food south 3 4
+lrover north 4 5
+hop west 5 6
+flytrap east 1 3
+landmine south 2 4
+food south 3 5
+lrover north 4 6
+hop west 5 7
+flytrap east 1 4
+landmine south 2 5
+food south 3 6
+lrover north 4 7
+hop west 5 8
